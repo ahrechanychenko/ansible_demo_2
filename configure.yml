@@ -1,0 +1,44 @@
+---
+- name: Configure Raddit App Instance
+  hosts: all
+  gather_facts: false
+  become: true
+  tasks:
+    - name: Install Ruby
+      apt: "name={{ item }} state=present"
+      with_items:
+        - ruby-full
+        - build-essential
+      when: inventory_hostname in groups['app']
+
+    - name: Install Bundler
+      gem:
+        name: bundler
+        state: present
+        user_install: no
+      when: inventory_hostname in groups['app']
+
+    - name: Add APT key
+      apt_key:
+        id: 4B7C549A058F8B6B
+        keyserver: keyserver.ubuntu.com
+
+    - name: Add MongoDB repo
+      when: inventory_hostname in groups['db']
+      apt_repository:
+        repo: deb [arch=amd64] https://repo.mongodb.org/apt/ubuntu bionic/mongodb-org/development multiverse
+        state: present
+
+    - name: Install MongoDB package
+      apt:
+        name: mongodb
+        state: present
+        update_cache: yes
+      when: inventory_hostname in groups['db']
+
+    - name: Start MongoDB
+      service:
+        name: mongodb
+        state: started
+        enabled: yes
+      when: inventory_hostname in groups['db']
